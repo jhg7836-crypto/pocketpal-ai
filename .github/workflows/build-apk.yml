@@ -1,4 +1,4 @@
-name: Build aj ai PocketPal APK
+name: Build aj ai PocketPal APK (Fast ARM64)
 
 on:
   push:
@@ -55,11 +55,11 @@ jobs:
               img.save(f'{path}/ic_launcher_round.png')
           "
 
-      - name: Build Android APK (Release ARM64)
+      - name: Build Android APK (ARM64 Target Only)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
