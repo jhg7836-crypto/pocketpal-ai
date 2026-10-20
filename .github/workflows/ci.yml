@@ -26,13 +26,9 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Dependencies
+      - name: Install Dependencies (Stable NPM)
         run: |
-          if [ -f yarn.lock ]; then
-            yarn install --ignore-engines
-          else
-            npm install --legacy-peer-deps
-          fi
+          npm install --legacy-peer-deps
 
       - name: Generate Blue Flower App Icon
         run: |
@@ -52,7 +48,7 @@ jobs:
               r = size // 5
               draw.ellipse([c - r, c - r, c + r, c + r], fill=(255, 220, 0, 255))
               img.save(f'{path}/ic_launcher.png')
-              img.save(f'{path}/ic_launcher.png')
+              img.save(f'{path}/ic_launcher_round.png')
           "
 
       - name: Build Android APK (ARM64 Prod)
