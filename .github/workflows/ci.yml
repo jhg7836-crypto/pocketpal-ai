@@ -52,17 +52,17 @@ jobs:
               r = size // 5
               draw.ellipse([c - r, c - r, c + r, c + r], fill=(255, 220, 0, 255))
               img.save(f'{path}/ic_launcher.png')
-              img.save(f'{path}/ic_launcher_round.png')
+              img.save(f'{path}/ic_launcher.png')
           "
 
-      - name: Build Android APK (ARM64)
+      - name: Build Android APK (ARM64 Prod)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
+          ./gradlew assembleProdRelease -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aj-ai-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: android/app/build/outputs/apk/prod/release/android-app-prod-release.apk
