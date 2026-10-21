@@ -41,7 +41,7 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Generate Dummy google-services.json (Fix Firebase Error)
+      - name: Generate Dummy google-services.json
         run: |
           mkdir -p android/app/src/debug android/app/src/release android/app/src/prodDebug android/app/src/prodRelease
           echo '{
@@ -78,11 +78,11 @@ jobs:
               img.save(f'{path}/ic_launcher_round.png')
           "
 
-      - name: Build Android APK (ARM64 Debug)
+      - name: Build Android APK (Stable & Safe)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
+          ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a --no-daemon --max-workers=2
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
