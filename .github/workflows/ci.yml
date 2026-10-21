@@ -62,14 +62,14 @@ jobs:
               img.save(f'{path}/ic_launcher_round.png')
           "
 
-      - name: Build Android APK (ARM64 Prod)
+      - name: Build Android APK (ARM64 Debug)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleProdRelease -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
+          ./gradlew assembleProdDebug -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aj-ai-release
-          path: android/app/build/outputs/apk/prod/release/android-app-prod-release.apk
+          path: android/app/build/outputs/apk/**/*.apk
