@@ -41,6 +41,22 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Generate Dummy google-services.json (Fix Firebase Error)
+        run: |
+          mkdir -p android/app/src/debug android/app/src/release android/app/src/prodDebug android/app/src/prodRelease
+          echo '{
+            "project_info": { "project_number": "1234567890", "project_id": "aj-ai-offline" },
+            "client": [{
+              "client_info": { "mobilesdk_app_id": "1:1234567890:android:1234567890abcdef" },
+              "api_key": [{ "current_key": "AIzaSyDummyKeyForOfflineApp00000000" }]
+            }],
+            "configuration_version": "1"
+          }' > android/app/google-services.json
+          cp android/app/google-services.json android/app/src/debug/google-services.json
+          cp android/app/google-services.json android/app/src/release/google-services.json
+          cp android/app/google-services.json android/app/src/prodDebug/google-services.json || true
+          cp android/app/google-services.json android/app/src/prodRelease/google-services.json || true
+
       - name: Generate Blue Flower App Icon
         run: |
           pip install Pillow
@@ -66,7 +82,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleProdDebug -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
+          ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a --parallel --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
