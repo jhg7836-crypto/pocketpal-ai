@@ -1,65 +1,278 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Allow app to check if any other app can handle URLs -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
-
-    <!-- Permissions (تمت إزالة صلاحية INTERNET تماماً لضمان الخصوصية) -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
-
-    <!-- صلاحيات قراءة التخزين -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-
-    <application
-      android:name=".MainApplication"
-      android:label="aj ai"
-      android:icon="@mipmap/ic_launcher"
-      android:roundIcon="@mipmap/ic_launcher_round"
-      android:allowBackup="true"
-      android:dataExtractionRules="@xml/backup_rules_12_plus"
-      android:fullBackupContent="@xml/backup_rules_legacy"
-      android:networkSecurityConfig="@xml/network_security_config"
-      android:theme="@style/AppTheme"
-      android:supportsRtl="true">
-      <activity
-        android:name=".MainActivity"
-        android:label="aj ai"
-        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
-        android:launchMode="singleTask"
-        android:windowSoftInputMode="adjustResize"
-        android:exported="true">
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="pocketpal" android:host="hub" />
-        </intent-filter>
-      </activity>
-
-        <service
-            android:name="com.pocketpal.download.DownloadJobService"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:exported="false" />
-
-        <uses-native-library
-            android:name="libOpenCL.so"
-            android:required="false" />
-
-        <uses-native-library
-            android:name="libcdsprpc.so"
-            android:required="false" />
-    </application>
-
-</manifest>
+diff -ruN a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+--- a/android/app/src/main/AndroidManifest.xml	2026-10-22 10:50:51.004162336 +0000
++++ b/android/app/src/main/AndroidManifest.xml	2026-10-22 10:50:51.094674893 +0000
+@@ -17,10 +17,11 @@
+ 
+     <!-- صلاحيات قراءة التخزين -->
+     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
++    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+ 
+     <application
+       android:name=".MainApplication"
+-      android:label="aj ai"
++      android:label="@string/app_name"
+       android:icon="@mipmap/ic_launcher"
+       android:roundIcon="@mipmap/ic_launcher_round"
+       android:allowBackup="true"
+@@ -31,7 +32,7 @@
+       android:supportsRtl="true">
+       <activity
+         android:name=".MainActivity"
+-        android:label="aj ai"
++        android:label="@string/app_name"
+         android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
+         android:launchMode="singleTask"
+         android:windowSoftInputMode="adjustResize"
+diff -ruN a/android/app/src/main/res/values/strings.xml b/android/app/src/main/res/values/strings.xml
+--- a/android/app/src/main/res/values/strings.xml	2026-10-22 10:50:51.006472919 +0000
++++ b/android/app/src/main/res/values/strings.xml	2026-10-22 10:51:08.000690543 +0000
+@@ -1,4 +1,4 @@
+ <resources>
+-    <string name="app_name">PocketPal</string>
++    <string name="app_name">aj ai</string>
+     <string name="download_channel_name">Model downloads</string>
+ </resources>
+diff -ruN a/scripts/make_icons.py b/scripts/make_icons.py
+--- a/scripts/make_icons.py	1970-01-01 00:00:00.000000000 +0000
++++ b/scripts/make_icons.py	2026-10-22 10:51:07.649819358 +0000
+@@ -0,0 +1,24 @@
++import sys
++from PIL import Image, ImageDraw
++
++SIZES = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
++RES = "android/app/src/main/res"
++
++src = Image.open(sys.argv[1] if len(sys.argv) > 1 else "icon.png").convert("RGBA")
++side = min(src.size)
++left = (src.width - side) // 2
++top = (src.height - side) // 2
++src = src.crop((left, top, left + side, top + side))
++
++for name, size in SIZES.items():
++    img = src.resize((size, size), Image.LANCZOS)
++    img.save(f"{RES}/mipmap-{name}/ic_launcher.png")
++
++    mask = Image.new("L", (size * 4, size * 4), 0)
++    ImageDraw.Draw(mask).ellipse((0, 0, size * 4 - 1, size * 4 - 1), fill=255)
++    mask = mask.resize((size, size), Image.LANCZOS)
++    round_img = img.copy()
++    round_img.putalpha(mask)
++    round_img.save(f"{RES}/mipmap-{name}/ic_launcher_round.png")
++
++print("done")
+diff -ruN a/src/screens/ModelsScreen/ModelsScreen.tsx b/src/screens/ModelsScreen/ModelsScreen.tsx
+--- a/src/screens/ModelsScreen/ModelsScreen.tsx	2026-10-22 10:50:51.050333584 +0000
++++ b/src/screens/ModelsScreen/ModelsScreen.tsx	2026-10-22 10:50:59.755152979 +0000
+@@ -1,12 +1,10 @@
+ import React, {useState, useContext, useEffect} from 'react';
+-import {FlatList, RefreshControl, Platform, Alert, View} from 'react-native';
++import {FlatList, RefreshControl, Alert, View} from 'react-native';
+ 
+ import {reaction, computed} from 'mobx';
+-import {v4 as uuidv4} from 'uuid';
+ import 'react-native-get-random-values';
+ import {observer} from 'mobx-react-lite';
+-import * as RNFS from '@dr.pogodin/react-native-fs';
+-import {pick, types} from '@react-native-documents/picker';
++import {pickDirectory} from '@react-native-documents/picker';
+ import {Portal, Snackbar} from 'react-native-paper';
+ 
+ import {useTheme} from '../../hooks';
+@@ -28,6 +26,11 @@
+ import {uiStore, modelStore, hfStore, UIStore, serverStore} from '../../store';
+ 
+ import {L10nContext} from '../../utils';
++import {
++  treeUriToPath,
++  listGgufFiles,
++  openAllFilesAccessSettings,
++} from '../../utils/externalModels';
+ import {Model, ModelOrigin} from '../../utils/types';
+ import {ErrorState} from '../../utils/errors';
+ 
+@@ -186,84 +189,54 @@
+       return;
+     }
+ 
+-    pick({
+-      type: Platform.OS === 'ios' ? 'public.data' : types.allFiles,
+-    })
+-      .then(async res => {
+-        let [file] = res;
+-        if (file) {
+-          // Assign a default name if file.name is null or undefined
+-          // Not sure if this can ever happen, though.
+-          let fileName =
+-            file.name || file.uri.split('/').pop() || `file_${uuidv4()}`;
+-
+-          const permanentDir = `${RNFS.DocumentDirectoryPath}/models/local`;
+-          let permanentPath = `${permanentDir}/${fileName}`;
+-          if (!(await RNFS.exists(permanentDir))) {
+-            await RNFS.mkdir(permanentDir);
+-          }
+-
+-          if (await RNFS.exists(permanentPath)) {
+-            const choice = await new Promise<'replace' | 'keep' | 'cancel'>(
+-              resolve => {
+-                Alert.alert(
+-                  l10n.models.fileManagement.fileAlreadyExists,
+-                  l10n.models.fileManagement.fileAlreadyExistsMessage,
+-                  [
+-                    {
+-                      text: l10n.models.fileManagement.replace,
+-                      onPress: () => resolve('replace'),
+-                    },
+-                    {
+-                      text: l10n.models.fileManagement.keepBoth,
+-                      onPress: () => resolve('keep'),
+-                    },
+-                    {
+-                      text: l10n.common.cancel,
+-                      onPress: () => resolve('cancel'),
+-                      style: 'cancel',
+-                    },
+-                  ],
+-                );
+-              },
+-            );
+-
+-            switch (choice) {
+-              case 'replace':
+-                await RNFS.unlink(permanentPath);
+-                modelStore.removeModelByFullPath(permanentPath);
+-                break;
+-              case 'keep':
+-                let counter = 1;
+-                const nameParts = fileName.split('.');
+-                const ext = nameParts.length > 1 ? nameParts.pop() : '';
+-                const name = nameParts.join('.');
+-                do {
+-                  permanentPath = `${permanentDir}/${name}_${counter}.${ext}`;
+-                  counter++;
+-                } while (await RNFS.exists(permanentPath));
+-                break;
+-              case 'cancel':
+-                console.log('File copy cancelled by user');
+-                return;
+-            }
+-          }
+-
+-          try {
+-            setIsCopyingModel(true);
+-            await RNFS.copyFile(file.uri, permanentPath);
+-            await modelStore.addLocalModel(permanentPath);
+-          } catch (e) {
+-            Alert.alert(
+-              l10n.models.fileManagement.copyFailed,
+-              e instanceof Error ? e.message : String(e),
+-            );
+-          } finally {
+-            setIsCopyingModel(false);
+-          }
+-        }
+-      })
+-      .catch(e => console.log('No file picked, error: ', e.message));
++    let dir;
++    try {
++      dir = await pickDirectory();
++    } catch (e) {
++      return;
++    }
++
++    const dirPath = treeUriToPath(dir.uri);
++    if (!dirPath) {
++      Alert.alert(
++        'Folder not supported',
++        'Pick a folder from internal storage or an SD card.',
++      );
++      return;
++    }
++
++    let files: string[] = [];
++    try {
++      files = await listGgufFiles(dirPath);
++    } catch (e) {
++      files = [];
++    }
++
++    if (files.length === 0) {
++      Alert.alert(
++        'No models found',
++        'No .gguf files were found, or All files access is not enabled for this app.',
++        [
++          {text: 'Open settings', onPress: () => openAllFilesAccessSettings()},
++          {text: 'Cancel', style: 'cancel'},
++        ],
++      );
++      return;
++    }
++
++    const known = new Set(modelStore.models.map(m => m.fullPath));
++    const fresh = files.filter(path => !known.has(path));
++
++    try {
++      setIsCopyingModel(true);
++      for (const path of fresh) {
++        await modelStore.addLocalModel(path);
++      }
++    } catch (e) {
++      Alert.alert('Failed', e instanceof Error ? e.message : String(e));
++    } finally {
++      setIsCopyingModel(false);
++    }
+   };
+ 
+   const activeModelId = modelStore.activeModel?.id;
+diff -ruN a/src/store/ModelStore.ts b/src/store/ModelStore.ts
+--- a/src/store/ModelStore.ts	2026-10-22 10:50:51.057196968 +0000
++++ b/src/store/ModelStore.ts	2026-10-22 10:50:51.094108634 +0000
+@@ -1796,9 +1796,11 @@
+         await this.releaseContext(true); // Clear active model and all related state
+       }
+ 
+-      // Delete the file from internal storage
++      // Only delete files the app owns; external models stay on disk
+       try {
+-        await RNFS.unlink(filePath);
++        if (filePath.startsWith(RNFS.DocumentDirectoryPath)) {
++          await RNFS.unlink(filePath);
++        }
+       } catch (err) {
+         console.error('Failed to delete local model file:', err);
+       }
+diff -ruN a/src/utils/externalModels.ts b/src/utils/externalModels.ts
+--- a/src/utils/externalModels.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/src/utils/externalModels.ts	2026-10-22 10:50:59.459152961 +0000
+@@ -0,0 +1,32 @@
++import {Linking} from 'react-native';
++import * as RNFS from '@dr.pogodin/react-native-fs';
++
++export function treeUriToPath(uri: string): string | null {
++  const decoded = decodeURIComponent(uri).split('/document/')[0];
++  const match = decoded.match(/\/tree\/([^:]+):(.*)$/);
++  if (!match) {
++    return null;
++  }
++  const volume = match[1];
++  const sub = match[2].replace(/\/+$/, '');
++  const root =
++    volume === 'primary' ? '/storage/emulated/0' : `/storage/${volume}`;
++  return sub ? `${root}/${sub}` : root;
++}
++
++export async function listGgufFiles(dir: string): Promise<string[]> {
++  const items = await RNFS.readDir(dir);
++  return items
++    .filter(item => item.isFile() && item.name.toLowerCase().endsWith('.gguf'))
++    .map(item => item.path);
++}
++
++export function openAllFilesAccessSettings() {
++  return Linking.sendIntent(
++    'android.settings.MANAGE_ALL_FILES_ACCESS_PERMISSION',
++  );
++}
++
++export function isInsideAppStorage(path: string): boolean {
++  return path.startsWith(RNFS.DocumentDirectoryPath);
++}
